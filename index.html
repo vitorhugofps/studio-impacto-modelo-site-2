@@ -1579,7 +1579,8 @@ const FX3D = (T) => {
         /* a luz balança como galho ao vento, e o cursor empurra a brisa */
         key.position.x = -7.5 + Math.sin(t * .37) * .32 + Math.sin(t * .91) * .12 + cx.x * .9;
         key.position.y = 6.2 + Math.cos(t * .29) * .22 + cy.x * .5;
-        const d = B.fit(MAXW + 2.6, MAXH + 2.5) * (1.06 - .06 * eo(I.inn));
+        const pt = B.aspect < 1;
+        const d = B.fit(MAXW + (pt ? .45 : 2.6), MAXH + 2.5) * (1.06 - .06 * eo(I.inn));
         cam.position.set(cx.x * .55, .05 + cy.x * .32, d); cam.lookAt(cx.x * .12, .05 + cy.x * .06, 0);
         r.render(scene, cam);
       }
@@ -1602,7 +1603,7 @@ const FX3D = (T) => {
       void main(){vec2 uv=vU;float row=floor(uv.y*48.);float tear=uG*(hh(vec2(row,floor(uT*24.)))-.5)*.16;uv.x+=tear;
         vec3 c=texture2D(uV,uv).rgb;
         vec2 f=fract(uv*uCells)-.5;float d=max(abs(f.x),abs(f.y));float m=smoothstep(.5,.34,d);
-        c*=mix(1.,m*1.32,mix(.3,.1,uF));
+        c*=mix(1.,m*1.22,mix(.17,.05,uF));
         c=mix(c,vec3(hh(gl_FragCoord.xy*.5+uT*60.)),uG*.55);
         c*=uOn*1.08;gl_FragColor=vec4(c,1.);
         #include <colorspace_fragment>
@@ -1649,7 +1650,7 @@ const FX3D = (T) => {
         spring(cx, I.x, 2.6, dt); spring(cy, I.y, 2.6, dt);
         /* chegar perto da tela deixa a imagem mais nítida */
         U.uF.value = dmp(U.uF.value, I.in && Math.abs(I.x) < .62 && Math.abs(I.y) < .55 ? 1 : 0, 3, dt);
-        const d = B.fit(W + 1.6, H + 3.6) * (1.1 - .1 * eo(I.inn));
+        const d = B.fit(W + (B.aspect < 1 ? .2 : 1.6), H + 3.6) * (1.1 - .1 * eo(I.inn));
         cam.position.set(cx.x * 1.1, Y0 + .1 + cy.x * .4, d); cam.lookAt(cx.x * .2, Y0 - .05, 0);
         r.render(scene, cam);
       }
@@ -1724,8 +1725,9 @@ const FX3D = (T) => {
         hinge.rotation.x = (90 - op) * Math.PI / 180;
         const on = cl((op - 60) / 40); UT.uOn.value = ready ? on : 0;
         spring(yaw, I.x * .42 + Math.sin(t * .23) * .06, 2.6, dt); spring(pit, I.y * .08, 2.6, dt);
-        lap.rotation.y = -.22 + yaw.x; lap.rotation.x = pit.x;
-        const d = B.fit(W * 1.75, 3.75);
+        const pt = B.aspect < 1;
+        lap.rotation.y = (pt ? -.12 : -.22) + yaw.x * (pt ? .6 : 1); lap.rotation.x = pit.x;
+        const d = B.fit(W * (pt ? 1.12 : 1.75), 3.75);
         cam.position.set(0, 2.3, d); cam.lookAt(0, .78, 0);
         r.render(scene, cam);
       }
@@ -1784,7 +1786,7 @@ const FX3D = (T) => {
           it.spin.rotation.z = it.w;
         });
         key.position.x = -1.5 + tiltY.x * 4; key.position.y = 4.2 - tilt.x * 6;
-        const d = B.fit(4.2, 3.4);
+        const d = B.fit(B.aspect < 1 ? 2.5 : 4.2, 3.4);
         cam.position.set(0, .2, d); cam.lookAt(0, .12, 0);
         r.render(scene, cam);
       }
