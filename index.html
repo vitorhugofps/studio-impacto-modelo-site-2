@@ -1451,7 +1451,7 @@ if (secs.length) {
      virtual conduz a cena ativa. Na parede, no telão e no notebook ele passeia devagar, para a cena respirar.
      No palco ele para de frente em cada disco e desliza até o próximo; quando o mouse volta, parte de onde ele ficou. */
   const DRIFT = { 'fx-tecnologia': [.07, .04, 19], 'fx-marca': [.12, .06, 21], 'fx-marketing': [.08, .05, 23] };  /* amplitude x, y, período (s) */
-  const DX = [1.1, .8, .5, .2];            /* onde o ponteiro precisa estar para cada disco ficar de frente */
+  const DX = [.98, .74, .5, .26];           /* onde o ponteiro precisa estar para cada disco ficar de frente, no centro (medido no Chrome) */
   const SEQ = [0, 1, 2, 3, 2, 1], STEP = 4.4;
   const pc = secs.find(s => s.el.id === 'fx-palco');
   const dbtns = pc ? $$('.uq__ch', pc.el) : [];
@@ -1469,7 +1469,7 @@ if (secs.length) {
     const now = performance.now() / 1000;
     if (now - lastReal < 1.4 && S.mouse) {          /* o mouse da pessoa manda */
       vx = clamp((S.px - r.left) / r.width, -.2, 1.3); vy = clamp((S.py - r.top) / r.height); mode = 'real'; mkey = '';
-      if (s === pc && S.px < r.right) mark(clamp(Math.round((1.1 - vx) / .3), 0, 3));
+      if (s === pc && S.px < r.right) mark(clamp(Math.round((.98 - vx) / .24), 0, 3));
       return;
     }
     if (mkey !== 'a' + s.k) { mkey = 'a' + s.k; t0 = now; if (s === pc) { si = SEQ.indexOf(dk); stepAt = Math.max(stepAt, now); } }
