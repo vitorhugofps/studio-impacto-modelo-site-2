@@ -1221,8 +1221,9 @@ void main(){
   if (!root.classList.contains('flat')) tasks.add(() => {
     if (cur !== 'metodo') { last = -1; return; }
     const p = clamp((S.y - M.top) / Math.max(1, M.h - S.vh)); if (Math.abs(p - last) < .0003) return; last = p;
-    const fp = p * n;
-    sts.forEach((el, i) => { const dl = fp - i, o = clamp(1 - Math.abs(dl) * 2.3); el.style.opacity = (o * o * (3 - 2 * o)).toFixed(3); el.style.transform = `translate3d(0,${(-dl * 84).toFixed(1)}px,0)`; el.style.pointerEvents = o > .5 ? '' : 'none'; });
+    /* cada tópico descansa na tela e só troca no miolo do trecho, para nunca ficar um vazio parado entre dois */
+    const fp = p * n, f0 = Math.floor(fp), fe = f0 + sstep(.3, .7, fp - f0);
+    sts.forEach((el, i) => { const dl = fe - i, o = clamp(1 - Math.abs(dl) * 2); el.style.opacity = (o * o * (3 - 2 * o)).toFixed(3); el.style.transform = `translate3d(0,${(-dl * 84).toFixed(1)}px,0)`; el.style.pointerEvents = o > .5 ? '' : 'none'; });
     const k = clamp(Math.round(fp), 0, n);
     if (k !== act) { act = k; btns.forEach((b, i) => { b.classList.toggle('on', i === k); if (i === k) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current'); }); }
     btns.forEach((b, i) => b.style.setProperty('--p', clamp(fp - i + .5).toFixed(3)));
