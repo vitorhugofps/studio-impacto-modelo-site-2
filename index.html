@@ -1476,7 +1476,8 @@ if (secs.length) {
       tx = .5 + D[0] * Math.sin(tt * 6.2832 / D[2]); ty = .5 + D[1] * Math.sin(tt * 6.2832 / (D[2] * .62));
       vx = damp(vx, tx, 1.6, dt); vy = damp(vy, ty, 1.6, dt);
     }
-    window.dispatchEvent(new MouseEvent('mousemove', { clientX: r.left + r.width * vx, clientY: r.top + r.height * vy }));
+    /* view: sem ele o evento sai sem a rolagem em pageY e a cena lê o ponteiro milhares de px acima */
+    window.dispatchEvent(new MouseEvent('mousemove', { view: window, clientX: r.left + r.width * vx, clientY: r.top + r.height * vy }));
   });
 }
 }
