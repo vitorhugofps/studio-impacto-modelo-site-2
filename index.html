@@ -1381,7 +1381,8 @@ if (secs.length) {
     s.ph.src = murl(s.ph.dataset.m);
     loadUS().then(US => {
       s.sceneEl.setAttribute('data-us-project', s.el.dataset.us);
-      s.sceneEl.setAttribute('data-us-dpi', s.el.id === 'fx-marketing' ? '1' : S.vw < 900 ? '1.25' : '1.5');
+      const px = s.sceneEl.offsetWidth * s.sceneEl.offsetHeight || 1;          /* teto de pixels por cena */
+      s.sceneEl.setAttribute('data-us-dpi', s.el.id === 'fx-marketing' ? '1' : Math.max(.75, Math.min(S.vw < 900 ? 1.25 : 1.5, Math.sqrt(2.6e6 / px))).toFixed(2));
       s.sceneEl.setAttribute('data-us-production', 'true');
       return US.init();
     }).then(list => {
@@ -1402,7 +1403,7 @@ if (secs.length) {
   if (mk) {
     const btns = $$('.uq__ch', mk.el); let hold = false, timer = 0; mk.ch = 0;
     const DUR = 11000; mk.el.style.setProperty('--dur', DUR + 'ms');
-    const arm = () => { clearTimeout(timer); const go = mk.vis && !hold && !RM && cur === 'home'; mk.el.classList.toggle('auto', go); if (go) timer = setTimeout(() => set((mk.ch + 1) % btns.length), DUR); };
+    const arm = () => { clearTimeout(timer); const go = mk.vis && !hold && !RM && cur === 'home' && !d.hidden; mk.el.classList.toggle('auto', go); if (go) timer = setTimeout(() => set((mk.ch + 1) % btns.length), DUR); };
     const set = k => {
       if (k !== mk.ch) { mk.ch = k; btns.forEach((b, n) => { b.classList.toggle('on', n === k); b.setAttribute('aria-pressed', n === k ? 'true' : 'false'); }); if (mk.state === 2) setTex(mk, 'uBgTexture', mk.cfg.video[k], true); if (RM) mk.ph.src = murl('p-' + mk.cfg.video[k].slice(2)); }
       arm();
@@ -1414,6 +1415,7 @@ if (secs.length) {
     box.addEventListener('focusin', () => { hold = true; arm(); });
     box.addEventListener('focusout', () => { hold = false; arm(); });
     inView(mk.el, () => arm(), '-30% 0px');
+    d.addEventListener('visibilitychange', arm);
   }
   measurers.add(() => { secs.forEach(s => { const r = s.el.getBoundingClientRect(); if (!r.height) return; s.top = r.top + scrollY; s.h = r.height; }); });
   /* coluna alinhada: o texto e os serviços ocupam a mesma altura nas quatro frentes, para os cases começarem na mesma linha */
@@ -1429,10 +1431,10 @@ if (secs.length) {
   tasks.add((t, dt) => {
     const home = cur === 'home', vh = S.vh;
     secs.forEach((s, k) => {
-      const live = home && s.vis;
-      if (s.scene && s.scene.paused === live) s.scene.paused = !live;
-      if (!live) { s.seen = false; return; }
       const nx = secs[k + 1];
+      const live = home && s.vis && !(nx && S.y > nx.top + 1);          /* coberta pela seguinte: não renderiza */
+      if (s.scene && s.scene.paused === live) s.scene.paused = !live;
+      if (!live) { s.seen = false; if (s.on) { s.on = false; s.el.classList.remove('on'); } return; }
       const out = nx ? clamp((S.y - (nx.top - vh)) / vh) : 0;          /* quanto a próxima já cobriu esta */
       const inn = k ? clamp((S.y - (s.top - vh)) / vh) : clamp((S.y - (s.top - vh * .55)) / (vh * .55));
       const on = inn > .62 && out < .86;
@@ -1442,7 +1444,7 @@ if (secs.length) {
       else { s.o = Math.abs(out - s.o) < .0004 ? out : damp(s.o, out, 9, dt); s.i = Math.abs(inn - s.i) < .0004 ? inn : damp(s.i, inn, 9, dt); }
       const key = s.o.toFixed(4) + '|' + s.i.toFixed(4);
       if (key === s.last) return; s.last = key;
-      const e = eio(s.o), a = k ? 1 - eout(s.i) : 0;
+      const e = sstep(0, 1, s.o), a = k ? 1 - eout(s.i) : 0;
       s.inner.style.transform = `translate3d(0,${(-e * 7).toFixed(3)}vh,0) rotateX(${(e * 13 - a * 9).toFixed(3)}deg) scale(${(1 - e * .13 - a * .05).toFixed(4)})`;
       s.dim.style.opacity = (e * .82).toFixed(3);
     });
@@ -1455,37 +1457,44 @@ if (secs.length) {
   const SEQ = [0, 1, 2, 3, 2, 1], STEP = 4.4;
   const pc = secs.find(s => s.el.id === 'fx-palco');
   const dbtns = pc ? $$('.uq__ch', pc.el) : [];
-  let vx = .5, vy = .5, lastReal = -9, t0 = 0, mode = '', mkey = '', dk = 0, si = 0, stepAt = 0;
+  const near = x => clamp(Math.round((.98 - x) / .24), 0, 3);
+  const spr = (x, v, to, w, dt) => { v = (v + w * w * dt * (to - x)) / (1 + w * dt) ** 2; return [x + v * dt, v]; };
+  const put = (s, x, y) => { const sc = s.scene, b = sc.bbox, m = sc.mouse; if (!b || !b.width || !m) return;
+    m.movePos.x = .5 * b.width * x; m.movePos.y = .5 * b.height * y; m.page.x = b.left + b.width * x;
+    m.page.y = b.top + (sc.isFixed ? 0 : sc.scrollY) + b.height * y; m.movedInView = true; };
+  let wx = 0, wy = 0, vx = .5, vy = .5, lastReal = -9, t0 = 0, mode = '', mkey = '', dk = 0, si = 0, stepAt = 0;
   const mark = k => { if (k === dk) return; dk = k; dbtns.forEach((b, n) => { b.classList.toggle('on', n === k); b.setAttribute('aria-pressed', n === k ? 'true' : 'false'); }); };
   if (pc) { pc.el.style.setProperty('--dur', STEP + 's');
     dbtns.forEach((b, n) => b.addEventListener('click', () => { mark(n); si = SEQ.indexOf(n); stepAt = performance.now() / 1000 + 3; lastReal = -9; if (RM) pc.ph.src = murl(pc.cfg.tex[n][1]); })); }
-  addEventListener('mousemove', e => { if (e.isTrusted) lastReal = performance.now() / 1000; }, { passive: true });
+  addEventListener('mousemove', e => { if (!e.isTrusted) return;
+    if (cur === 'home' && e.target.closest && e.target.closest('.uq__box')) { e.stopImmediatePropagation(); lastReal = -9; return; }
+    lastReal = performance.now() / 1000; }, { capture: true, passive: true });
   if (!RM) tasks.add((t, dt) => {
     if (cur !== 'home') return;
-    const s = secs.find(x => x.on && x.state === 2);
+    let s = null; for (const x of secs) if (x.on && x.vis && x.state === 2) s = x;
     if (pc) { const au = s === pc && mode === 'auto'; if (au !== pc.au) { pc.au = au; pc.el.classList.toggle('auto', au); } }
     if (!s) { mode = ''; mkey = ''; return; }
-    const r = s.sceneEl.getBoundingClientRect(); if (!r.width) return;
+    const r = s.scene.bbox; if (!r || !r.width) return;
     const now = performance.now() / 1000;
     if (now - lastReal < 1.4 && S.mouse) {          /* o mouse da pessoa manda */
-      vx = clamp((S.px - r.left) / r.width, -.2, 1.3); vy = clamp((S.py - r.top) / r.height); mode = 'real'; mkey = '';
-      if (s === pc && S.px < r.right) mark(clamp(Math.round((.98 - vx) / .24), 0, 3));
+      vx = clamp((S.px - r.left) / r.width); vy = clamp((S.py - r.top) / r.height); wx = wy = 0; mode = 'real'; mkey = '';
+      if (s === pc) mark(near(vx));
       return;
     }
-    if (mkey !== 'a' + s.k) { mkey = 'a' + s.k; t0 = now; if (s === pc) { si = SEQ.indexOf(dk); stepAt = Math.max(stepAt, now); } }
+    if (mkey !== 'a' + s.k) { mkey = 'a' + s.k; t0 = now; if (s === pc) { if (mode !== 'real' && now > stepAt) mark(near(vx)); si = SEQ.indexOf(dk); stepAt = Math.max(stepAt, now); } }
     mode = 'auto';
     let tx, ty;
     if (s === pc) {
       if (now - stepAt > STEP) { si = (si + 1) % SEQ.length; stepAt = now; mark(SEQ[si]); }
       tx = DX[dk]; ty = .5 + .035 * Math.sin(now * .9);
-      vx = damp(vx, tx, 1.9, dt); vy = damp(vy, ty, 2, dt);
+      [vx, wx] = spr(vx, wx, tx, 4, dt); [vy, wy] = spr(vy, wy, ty, 2.2, dt);
     } else {
       const D = DRIFT[s.el.id], tt = now - t0;
       tx = .5 + D[0] * Math.sin(tt * 6.2832 / D[2]); ty = .5 + D[1] * Math.sin(tt * 6.2832 / (D[2] * .62));
-      vx = damp(vx, tx, 1.6, dt); vy = damp(vy, ty, 1.6, dt);
+      [vx, wx] = spr(vx, wx, tx, 2.2, dt); [vy, wy] = spr(vy, wy, ty, 2.2, dt);
     }
-    /* view: sem ele o evento sai sem a rolagem em pageY e a cena lê o ponteiro milhares de px acima */
-    window.dispatchEvent(new MouseEvent('mousemove', { view: window, clientX: r.left + r.width * vx, clientY: r.top + r.height * vy }));
+    /* o mesmo ponteiro normalizado em todas as cenas na tela: sem evento, sem leitura de layout, sem pulo na troca */
+    for (const x of secs) if (x.vis && x.state === 2) put(x, vx, vy);
   });
 }
 }
