@@ -2292,7 +2292,7 @@ if (secs.length) {
       if (window.ResizeObserver) new ResizeObserver(() => fitView(s)).observe(s.sceneEl);
       s.state = 2;
       /* aquecimento: alguns quadros fora da tela compilam os shaders e sobem as texturas antes de a cena aparecer */
-      [80, 700, 1600, 3000, 5000].forEach(ms => setTimeout(() => { if (!s.vis && s.view && s.view.frame) try { s.view.frame(performance.now() / 1000, .016, { x: 0, y: 0, inn: 0, in: false }); } catch (e) { } }, ms));
+      [60, 500, 1200, 2200].forEach(ms => setTimeout(() => { if (!s.vis && s.view && s.view.frame) try { s.view.frame(performance.now() / 1000, .016, { x: 0, y: 0, inn: 0, in: false }); } catch (e) { } }, ms));
     }).catch(() => { s.state = 3; });
   };
   secs.forEach(s => {
@@ -2304,7 +2304,7 @@ if (secs.length) {
      com o carregamento do 3D (Three.js, texturas e shaders) */
   if (!RM) {
     const early = () => (window.requestIdleCallback || (f => setTimeout(f, 1)))(() => start(secs[0]), { timeout: 2500 });
-    if (d.readyState === 'complete') setTimeout(early, 1800); else addEventListener('load', () => setTimeout(early, 1800), { once: true });
+    if (d.readyState === "complete") setTimeout(early, 900); else addEventListener("load", () => setTimeout(early, 900), { once: true });
   }
   /* Marketing: os canais do telão */
   const mk = secs.find(s => s.el.id === 'fx-marketing');
