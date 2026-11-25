@@ -831,7 +831,7 @@ vec3 mBlob(vec2 p){
 float dwv(vec2 q,vec3 im){float a=floor(im.z/1000.)/10.,age=mod(im.z,1000.);if(a<=0.)return 0.;
   float d=length(q-im.xy)/uDp,R=age*(420.+280.*a),x=d-R,w=40.+60.*a+age*26.;
   return sin(x*.075)*exp(-x*x/(w*w))*a*exp(-age*.9)*smoothstep(0.,.06,age)*smoothstep(0.,40.,d+20.);}
-float dht(vec2 q){float h=0.;for(int i=0;i<8;i++)h+=dwv(q,uIm[i]);
+float dht(vec2 q){float h=0.;for(int i=0;i<8;i++)h+=dwv(q,uIm[i]);vec2 z=q/uDp;h+=.05*sin(z.x*.006+uT*.7+sin(z.y*.004-uT*.4)*2.)*sin(z.y*.007-uT*.55+sin(z.x*.005)*1.5);
   float dc=length(q-uC)/uDp-uRad/uDp;h+=.35*exp(-max(dc,0.)/16.)*sin(dc*.11+uT*2.2)*.5;return h;}
 vec3 mDrop(vec2 p){
   float e=1.5*uDp,h=dht(p),hx=dht(p+vec2(e,0.)),hy=dht(p+vec2(0.,e));
@@ -844,9 +844,9 @@ vec3 mDrop(vec2 p){
   /* o ponto: esfera preta brilhante, achatada na queda (uL.x) */
   float st=max(uL.x,.6);vec2 q=(p-uC)/uRad;q.y/=st;q.x*=sqrt(st);float d=length(q);
   float aa=1.5/uRad;float m=ss(1.+aa,1.-aa,d);
-  vec3 sn=vec3(q,sqrt(max(1.-d*d,0.)));float spec=pow(max(dot(reflect(-L,sn),V),0.),40.);
+  vec3 sn=vec3(q,sqrt(max(1.-d*d,0.)));float spec=pow(max(dot(reflect(-L,sn),V),0.),140.)+pow(max(dot(reflect(-L,sn),V),0.),12.)*.12;
   float fres=pow(1.-sn.z,3.);
-  float gl=clamp(uGl,0.,1.);vec3 ball=vec3(.012)+vec3(1.,.95,.9)*spec*.85*gl+OR*fres*.55*gl;
+  float gl=clamp(uGl,0.,1.);vec3 ball=vec3(.012)+vec3(1.,.95,.9)*spec*.95*gl+OR*fres*1.4*gl;
   c=mix(c,ball,m);
   c=mix(c,vec3(.45,.05,.01),(1.-m)*exp(-max(d-1.,0.)/.08)*.35);
   return c;
@@ -937,7 +937,7 @@ function dropDrive(s, t, dt, sp, still) {
   const step = still ? DROP.step : sp > .62 ? 2 : sp > .3 ? 1 : 0;
   if (DROP.landed && step > DROP.step && !DROP.hop) { DROP.step = step; DROP.hop = t; }
   if (step < DROP.step) DROP.step = step;
-  if (DROP.hop) { const h = (t - DROP.hop) / .52; if (h < 1) { y -= Math.sin(Math.PI * h) * s.r * 1.25; st = 1 + .18 * Math.sin(Math.PI * h); } else { DROP.hop = 0; DROP.land = t; dropKick(cxp, cyp, .85, t); } }
+  if (DROP.hop) { const h = (t - DROP.hop) / .52; if (h < 1) { s.r *= 1 + .35 * Math.sin(Math.PI * h); } else { DROP.hop = 0; DROP.land = t; dropKick(cxp, cyp, .85, t); } }
   if (DROP.landed && !DROP.hop && t - DROP.last > 3.2) { DROP.last = t; dropKick(cxp, cyp, .3, t); }
   if (S.mouse && FINE && t - S.pt < .25 && Math.hypot(S.px - DROP.lx, S.py - DROP.ly) > 52) { DROP.lx = S.px; DROP.ly = S.py; dropKick(S.px, S.py, .3, t); }
   /* o bloco de texto sente cada batida: um tranco curto que some em meio segundo */
@@ -976,9 +976,9 @@ const PAGE = {
         /* manifesto: o ponto cai na superfície laranja e cada degrau do texto faz ele bater de novo */
         s.bg = O; s.dot = K; s.cx = G.M.c[0]; s.li = 1; s.A = s.B = 13; s.gl = 1;
         let sp;
-        if (mob) { s.cy = (A.man[0] + G.M.top - y) / vh; s.r = G.M.r * .78; sp = clamp((y - A.man[0] + vh * .7) / (vh * .7)); }
+        if (mob) { s.cy = (A.man[0] + G.M.top - y) / vh; s.r = G.M.r * .78; sp = clamp((y - A.man[0]) / Math.max(1, A.man[1] - vh)); }
         else { s.cy = G.M.c[1]; s.r = G.M.r * .62; const s0 = A.heroPin + vh * .2, s1 = A.man[0] + A.man[1] - vh * .8; sp = clamp((y - s0) / Math.max(1, s1 - s0)); }
-        dropDrive(s, t, dt, sp); if (s.cy < -.6) s.r = -10; return false;
+        dropDrive(s, t, dt, sp); return false;
       }
       if (y < g[0][1]) {
         const q = (y - g[0][0]) / (g[0][1] - g[0][0]);
@@ -1076,7 +1076,7 @@ measurers.add(() => {
   const c9 = colsX(9, 12), cx9 = (c9[0] + c9[1]) / 2 / vw, w9 = c9[1] - c9[0];
   G.H = mob ? { c: [.5, .37], r: Math.min(vw * .34, vh * .19) } : { c: [.5, .445], r: Math.min(vmin * .26, vh * .23) };
   G.M = mob ? { c: [.5, .27], r: Math.min(vw * .26, vh * .14) } : { c: [cx9, .5], r: Math.min(vh * .25, w9 * .5) };
-  G.M.top = vh * .13 + G.M.r;
+  G.M.top = (mob ? vh * .2 : vh * .13) + G.M.r;
   G.E = { c: mob ? .5 : cx9, r: mob ? Math.min(vw * .26, vh * .14) : Math.min(vh * .25, w9 * .5), top: 0 };
   G.Rc = Math.hypot(vw, vh) * .74; G.seed = vmin * .05;
   PAGE[cur].measure(vw, vh, mob);
@@ -1555,7 +1555,7 @@ const FX3D = (T) => {
     return B;
   }
   /* estúdio para reflexos: caixa escura com softboxes, convertida em mapa de ambiente */
-  function studio(r, warm, lift) {
+  function studio(r, warm, lift, floor) {
     const s = new T.Scene(), box = new T.Mesh(new T.BoxGeometry(20, 12, 20), new T.MeshBasicMaterial({ color: new T.Color(0x070707).multiplyScalar(1 + (lift || 0) * 6), side: T.BackSide }));
     s.add(box);
     const panel = (w, h, x, y, z, ry, rx, c) => { const m = new T.Mesh(new T.PlaneGeometry(w, h), new T.MeshBasicMaterial({ color: c, side: T.DoubleSide })); m.position.set(x, y, z); m.rotation.set(rx || 0, ry || 0, 0); s.add(m); };
@@ -1564,6 +1564,7 @@ const FX3D = (T) => {
     panel(3, 7, -9.8, 1, 0, Math.PI / 2, 0, W.clone().multiplyScalar(3.2));
     panel(2.2, 6, 9.8, .5, -2, -Math.PI / 2, 0, (warm ? new T.Color(1, .32, .12) : W.clone()).multiplyScalar(warm ? 4 : 2));
     panel(6, 1.2, 0, 2.6, 9.8, Math.PI, 0, W.clone().multiplyScalar(1.6));
+    if (floor) panel(16, 16, 0, -5.8, 0, 0, Math.PI / 2, W.clone().multiplyScalar(floor));
     if (lift) { panel(14, 1.4, 0, -1.5, 9.8, Math.PI, 0, new T.Color(.55, .75, 1).multiplyScalar(2.2)); panel(1.4, 9, -6, 0, 9.8, Math.PI, 0, new T.Color(1, .55, .85).multiplyScalar(2.4)); panel(1.4, 9, 6, 0, 9.8, Math.PI, 0, new T.Color(1, .85, .45).multiplyScalar(2.4)); }
     const pm = new T.PMREMGenerator(r), env = pm.fromScene(s, .04).texture; pm.dispose();
     return env;
@@ -1769,11 +1770,11 @@ const FX3D = (T) => {
     const B = base(canvas, { fov: 27, shadow: T.PCFSoftShadowMap, tone: T.NeutralToneMapping, exp: 1, shift: .03 }), { r, cam, scene } = B;
     /* fundo cinza liso, um pouco mais claro atrás do objeto */
     /* fundo: o cinza liso da referência no centro, caindo para o escuro nas bordas como luz de estúdio */
-    const bgc = canvas2(512, 512), bx = bgc.getContext('2d'), bgG = bx.createRadialGradient(256, 220, 20, 256, 250, 330);
-    bgG.addColorStop(0, '#8a8b8e'); bgG.addColorStop(.45, '#7d7e81'); bgG.addColorStop(.8, '#3a3a3c'); bgG.addColorStop(1, '#0b0b0c');
-    bx.fillStyle = '#0b0b0c'; bx.fillRect(0, 0, 512, 512); bx.fillStyle = bgG; bx.fillRect(0, 0, 512, 512);
+    const bgc = canvas2(512, 512), bx = bgc.getContext('2d'), bgG = bx.createRadialGradient(256, 230, 20, 256, 250, 256);
+    bgG.addColorStop(0, '#8a8b8e'); bgG.addColorStop(.45, '#7a7b7e'); bgG.addColorStop(.82, '#1a1a1b'); bgG.addColorStop(1, '#000');
+    bx.fillStyle = '#000'; bx.fillRect(0, 0, 512, 512); bx.fillStyle = bgG; bx.fillRect(0, 0, 512, 512);
     const bgT = new T.CanvasTexture(bgc); bgT.colorSpace = T.SRGBColorSpace; scene.background = bgT;
-    scene.environment = studio(r, false); scene.environmentIntensity = 1;
+    scene.environment = studio(r, false, 0, 1.3); scene.environmentIntensity = 1;
     const rr = (w, h, rad) => { const s = new T.Shape(), x = -w / 2, y = -h / 2; s.moveTo(x + rad, y); s.lineTo(x + w - rad, y); s.quadraticCurveTo(x + w, y, x + w, y + rad); s.lineTo(x + w, y + h - rad); s.quadraticCurveTo(x + w, y + h, x + w - rad, y + h); s.lineTo(x + rad, y + h); s.quadraticCurveTo(x, y + h, x, y + h - rad); s.lineTo(x, y + rad); s.quadraticCurveTo(x, y, x + rad, y); return s; };
     const slab = (w, h, th, rad, bev) => { const g = new T.ExtrudeGeometry(rr(w - 2 * bev, h - 2 * bev, rad), { depth: th - 2 * bev, bevelEnabled: true, bevelThickness: bev, bevelSize: bev, bevelSegments: 6, curveSegments: 18 }); g.translate(0, 0, -(th - 2 * bev) / 2); return g; };
     /* alumínio jateado com escovado fino: rugosidade em listras horizontais quase invisíveis */
@@ -1876,9 +1877,9 @@ const FX3D = (T) => {
         UT.uM.value = ei(mix); UT.uX.value = (t * .06) % 2 - .6;
         spring(yaw, I.x * .26 + Math.sin(t * .23) * .04, 2.4, dt); spring(pit, I.y * .07 + Math.sin(t * .31) * .015, 2.4, dt);
         const pt = B.aspect < 1;
-        all.rotation.y = (pt ? -.36 : -.5) + yaw.x * (pt ? .6 : 1); all.rotation.x = pit.x; all.rotation.z = -yaw.x * .05;
-        const d = B.fit(pt ? 4.6 : 4.7, pt ? 5.4 : 3.9);
-        cam.position.set(pt ? 0 : .06, pt ? -.55 : -.7, d); cam.lookAt(pt ? .2 : .24, pt ? .35 : .42, 0);
+        all.rotation.y = (pt ? -.36 : -.5) + yaw.x * (pt ? .6 : 1); all.rotation.x = -.03 + pit.x; all.rotation.z = -yaw.x * .05;
+        const d = B.fit(pt ? 3.7 : 4.7, pt ? 3.6 : 3.9);
+        cam.position.set(pt ? 0 : -.1, pt ? -.95 : -1.15, d); cam.lookAt(pt ? .1 : -.06, pt ? .5 : .55, 0);
         r.render(scene, cam);
       }
     };
@@ -2054,7 +2055,7 @@ const FX3D = (T) => {
     const handMat = gain => new T.ShaderMaterial({ uniforms: Object.assign({ uT: { value: 0 }, uWv: { value: 0 }, uEnt: { value: 0 }, uSz: { value: 1.6 }, uDpr: { value: 1 }, uGain: { value: gain }, uAsp: { value: 1 }, uRep: { value: 0 }, uFl: { value: 0 }, uFb: { value: o.bot ? 1 : 0 }, uMs: { value: new T.Vector2(9, 9) } }, orbU),
       vertexShader: PV, fragmentShader: PF, transparent: true, depthTest: false, depthWrite: false, blending: T.AdditiveBlending });
     /* eco: a mão nítida em branco e três cópias em cinza, cada uma mais atrasada e mais apagada */
-    const ECHO = [{ g: .6, w: 0, o: 0 }, { g: .3, w: 6, o: 1 }, { g: .16, w: 3.2, o: 2 }, { g: .085, w: 1.8, o: 3 }];
+    const ECHO = [{ g: .6, w: 0, o: 0 }, { g: .45, w: 6, o: 1 }, { g: .28, w: 3.2, o: 2 }, { g: .16, w: 1.8, o: 3 }];
     const hands = ECHO.map(E => { const g = new T.Group(); scene.add(g); return { E, g, m: handMat(E.g), x: sp(0), y: sp(0), rz: sp(0), wv: 0 }; });
     let handReady = false, HW = 1, HH = 1;
     const AX = o.ax || .43, AY = o.ay || .05;            /* ponta do indicador */            /* ponto de apoio na imagem (x da esquerda, y do topo): onde o ponto pousa */
@@ -2063,7 +2064,7 @@ const FX3D = (T) => {
       const S0 = 640, c = canvas2(S0, Math.round(S0 * img.height / img.width)), x = c.getContext('2d'); x.drawImage(img, 0, 0, c.width, c.height);
       const px = x.getImageData(0, 0, c.width, c.height).data, w = c.width, h = c.height, L = new Float32Array(w * h);
       for (let i = 0; i < w * h; i++) L[i] = px[i * 4] / 255;
-      const N = o.mob ? 20000 : 52000, R = rng(9), P = new Float32Array(N * 3), A = new Float32Array(N * 4), Bv = new Float32Array(N), Tp = new Float32Array(N);
+      const N = o.mob ? 22000 : 60000, R = rng(9), P = new Float32Array(N * 3), A = new Float32Array(N * 4), Bv = new Float32Array(N), Tp = new Float32Array(N);
       let n = 0, guard = 0;
       while (n < N && guard++ < N * 60) {
         const u = R(), v = R(), ix = Math.min(w - 1, u * w | 0), iy = Math.min(h - 1, v * h | 0), l = L[iy * w + ix];
@@ -2073,7 +2074,7 @@ const FX3D = (T) => {
         if (R() > Math.pow(l, .8) * .85 + edge * .5) continue;
         P[n * 3] = (u - AX) * 1; P[n * 3 + 1] = -(v - AY) * (h / w); P[n * 3 + 2] = (l - .45) * .03 + (R() - .5) * .006;
         A[n * 4] = R(); A[n * 4 + 1] = R(); A[n * 4 + 2] = R(); A[n * 4 + 3] = R();
-        Bv[n] = Math.min(1.35, .06 + Math.pow(l, 1.6) * .95 + edge * .6); Tp[n] = Math.max(0, Math.min(1, (.62 - v) / .5));
+        Bv[n] = Math.min(1.35, .04 + Math.pow(l, 2) * 1. + edge * .7); Tp[n] = Math.max(0, Math.min(1, (.62 - v) / .5));
         n++;
       }
       const g = new T.BufferGeometry();
@@ -2119,7 +2120,7 @@ const FX3D = (T) => {
         const pr = Math.min(devicePixelRatio || 1, 2, Math.sqrt(3.2e6 / (w * h)));
         r.setPixelRatio(pr); r.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix();
         L.w = w; L.h = h; L.k = VH / h; L.mob = w < 700; L.dpr = pr;
-        L.ox = w * .5; L.oy = h * (o.oy || (L.mob ? .5 : .53)); L.orR = Math.min(w, h) * (L.mob ? .085 : .072);
+        L.ox = w * .5; L.oy = h * (o.oy || (L.mob ? .5 : .46)); L.orR = Math.min(w, h) * (L.mob ? .085 : .072);
         UA.uR.value.set(w * pr, h * pr); UA.uD.value = pr;
         UA.uO.value.set(L.ox * pr, (h - L.oy) * pr); UA.uE.value.set(-w * (L.mob ? .12 : .05) * pr, (h + h * (L.mob ? -.06 : .02)) * pr);
       },
@@ -2152,7 +2153,7 @@ const FX3D = (T) => {
         UA.uM.value.set(I.mouse ? I.mx * L.dpr : -1e5, I.mouse ? (L.h - I.my) * L.dpr : -1e5); UA.uHot.value = dmp(UA.uHot.value, I.mouse ? 1 : 0, 4, dt);
         /* mão: abaixo e à direita do ponto, braço saindo pela borda */
         if (handReady) {
-          const sz = (L.mob ? L.h * .44 : L.h * .47) * L.k * (o.hs || 1), rot = o.rot !== undefined ? o.rot : 0;
+          const sz = (L.mob ? L.h * .4 : L.h * .38) * L.k * (o.hs || 1), rot = o.rot !== undefined ? o.rot : 0;
           const hx = wx + wr * (o.hx || .04), hy = wy - wr * (o.hy || 1.12);
           const ms = I.mouse ? [I.mx / L.w * 2 - 1, -(I.my / L.h * 2 - 1)] : [9, 9];
           hands.forEach((H, k) => {
@@ -2161,10 +2162,10 @@ const FX3D = (T) => {
             if (!E.w || rm) { H.x.x = tgx; H.y.x = tgy; H.rz.x = rot + tilt; }
             else { spring(H.x, tgx, E.w, dt); spring(H.y, tgy, E.w, dt); spring(H.rz, rot + tilt, E.w, dt); }
             /* deslocamento fixo do eco, que gira devagar: mesmo parada a mão tem rastro */
-            const a = t * .23 - .9, off = E.o * wr * (.05 + .34 * st.mv);
+            const a = t * .23 - .9, off = E.o * wr * (.012 + .34 * st.mv);
             H.g.position.set(H.x.x + Math.cos(a) * off, H.y.x + Math.sin(a) * off - E.o * wr * .02, -E.o * .02);
             H.g.rotation.z = H.rz.x; H.g.scale.setScalar(sz * (1 + E.o * .006));
-            const U = H.m.uniforms; U.uGain.value = E.g * (E.o ? .35 + .65 * st.mv : 1); U.uT.value = t; U.uWv.value = t - E.o * .22; U.uEnt.value = cl(st.ent * 1.02 - E.o * .05); U.uDpr.value = L.dpr; U.uSz.value = L.mob ? 1.15 : 1.2;
+            const U = H.m.uniforms; U.uGain.value = E.g * (E.o ? .12 + .6 * st.mv : 1); U.uT.value = t; U.uWv.value = t - E.o * .22; U.uEnt.value = cl(st.ent * 1.02 - E.o * .05); U.uDpr.value = L.dpr; U.uSz.value = L.mob ? 1.05 : 1.08;
             U.uAsp.value = L.w / L.h; U.uMs.value.set(ms[0], ms[1]); U.uRep.value = E.o ? .6 : 1; U.uFl.value = st.fl;
           });
         }
