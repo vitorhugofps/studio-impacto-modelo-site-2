@@ -832,6 +832,7 @@ vec3 mBlob(vec2 p){
    uAu = (giro da luz, ignição 0..1, clarão, corte inferior em px); uAp = paralaxe do cursor; uAv = (presença, cursor perto) */
 vec3 aRef(vec2 p){
   vec2 q=(p-uC)/uRad;q.x=-q.x;
+  float aa=1.3*uDp/max(uRad,1.);
   float ig=clamp(uAu.y,0.,1.),fx=uAu.z,ang=uAu.x+.035*sin(uT*.29)+.02*sin(uT*.71);
   vec2 dr=vec2(sin(uT*.23),cos(uT*.19));
   /* esfera de trás: miolo laranja, borda amarela quase branca do lado da luz, a parte de cima apaga */
@@ -846,7 +847,8 @@ vec3 aRef(vec2 p){
   float gp=-.35+(1.-clamp(fx,0.,1.))*1.75;
   c1+=vec3(1.,.82,.55)*exp(-pow((th-gp)/.16,2.))*ss(.9,.995,d1)*clamp(fx,0.,1.)*.6;
   c1=mix(vec3(1.,.93,.72)*(.92+.08*ss(.55,1.,d1)),c1,ig);
-  float m1=ss(1.007,.99,d1);
+  float m1=ss(1.+aa,1.-aa,d1);
+  c1=mix(c1,vec3(1.,.96,.66),exp(-pow((d1-1.+aa*1.5)/(aa*1.6),2.))*lit*.55*ig);
   float out1=max(d1-1.,0.);
   vec3 col=(vec3(.62,.15,.02)*exp(-out1/.085)+vec3(.05,.01,0.)*exp(-out1/.3))*(1.-m1)*ss(1.2,.75,th)*max(ig,fx*.4)*(1.+fx*.5+uAv.y*.3)*(.96+.04*sin(uT*.8));
   col=mix(col,c1,m1);
@@ -876,16 +878,16 @@ vec3 aRef(vec2 p){
   float fl0=clamp(dot(q-fa,fu),0.,1.2);vec2 fv=q-fa-fu*fl0;float fdl=max(length(fv),1e-4);
   float sd=fdl-.1-.006*sin(uT*.37+fl0*3.),ft=fl0/1.2;
   float w3=mix(ss(.85,.35,dot(fv/fdl,fn)),ss(.06,-.1,dot(q-fa,fn)),ss(0.,.06,fl0));
-  float tl=ss(.15,.45,ft);float rid=(exp(-pow(sd/.011,2.))*.95*(1.-.45*tl)+.3*(1.+1.3*tl)*exp(-pow(sd/(.06+.05*tl),2.)))*w3;
+  float tl=ss(.15,.45,ft);float rcw=max(aa*2.2,.004);float rid=(exp(-pow(sd/rcw,2.))*.95*(1.-.45*tl)+.3*(1.+1.3*tl)*exp(-pow(sd/(.06+.05*tl),2.)))*w3;
   vec3 rcl=mix(vec3(1.,.33,.2),vec3(1.,.56,.16),ss(.12,.42,ft));
   vec3 lcl=mix(vec3(.95,.15,.17),vec3(.98,.47,.18),ss(.18,.45,ft));
   float lob=max(ss(.03,-.05,sd),ss(-.1,.4,dot(fv/fdl,fn))*ss(.45,.05,sd))*ss(1.,.86,d2);
   c2c=mix(c2c,lcl,lob*.85*ig);
   c2c=mix(c2c,rcl,clamp(rid*.9*(1.+fx*.6),0.,1.)*ig);
-  float m2=ss(1.004,.99,d2)*ss(0.,.55,ig);
+  float m2=ss(1.+aa,1.-aa,d2)*ss(0.,.55,ig);
   col=mix(col,c2c,m2);
   /* fio de luz na borda da esfera da frente, mais forte do lado da luz */
-  col=mix(col,vec3(1.,.7,.45),exp(-pow((d2-.994)/.009,2.))*(.3+.7*fac)*ss(0.,.55,ig));
+  col=mix(col,vec3(1.,.7,.45),exp(-pow((d2-1.+aa*1.6)/(aa*1.8+.002),2.))*(.3+.7*fac)*ss(0.,.55,ig));
   col+=vec3(.2,.085,.13)*exp(-pow((d2-1.)/.018,2.))*ss(.55,.95,q2.y/max(d2,1e-3))*ss(-.08,.1,q2.x)*ss(.36,.18,q2.x)*ig;
   return col;
 }
