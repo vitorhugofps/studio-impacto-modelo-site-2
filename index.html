@@ -1660,8 +1660,8 @@ const FX3D = (T) => {
   const loader = new T.TextureLoader(); loader.setCrossOrigin('anonymous');
   /* sobe as texturas para a placa de vídeo uma por vez, em momentos ociosos: a primeira troca de case não engasga */
   const idle = f => (window.requestIdleCallback || (g => setTimeout(g, 1)))(f, { timeout: 1200 });
-  const warmTex = (r, list) => { const q = list.filter(Boolean); const step = () => { const t = q.shift(); if (!t) return; try { r.initTexture(t); } catch (e) { } setTimeout(() => idle(step), 140); }; idle(step); };
-  const loadTex = (url, r) => new Promise(ok => { if (!url) return ok(null); loader.load(url, t => { t.colorSpace = T.SRGBColorSpace; t.anisotropy = Math.min(8, r.capabilities.getMaxAnisotropy()); ok(t); }, undefined, () => ok(null)); });
+  const warmTex = (r, list) => { const q = list.filter(Boolean); const step = () => { const t = q.shift(); if (!t) return; try { r.initTexture(t); } catch (e) { } setTimeout(() => idle(step), 90); }; idle(step); };
+  const loadTex = (url, r) => new Promise(ok => { if (!url) return ok(null); loader.load(url, t => { t.colorSpace = T.SRGBColorSpace; t.anisotropy = Math.min(8, r.capabilities.getMaxAnisotropy()); const im = t.image; (im && im.decode ? im.decode().catch(() => {}) : Promise.resolve()).then(() => ok(t)); }, undefined, () => ok(null)); });
 
   function base(canvas, o = {}) {
     const r = new T.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
@@ -1826,7 +1826,7 @@ const FX3D = (T) => {
     const run = v => { const p = v.play(); if (p && p.catch) p.catch(() => {}); };
     const load = k => { const v = vids[k]; if (v && !v.src) { v.src = list[k]; v.load(); } };
     /* o primeiro canal entra já; os outros carregam um por vez, depois que o anterior tem imagem */
-    const more = () => { if (queued >= N) return; const k = queued++; load(k); vids[k].addEventListener('loadeddata', () => { idle(() => { try { r.initTexture(vts[k]); } catch (e) { } }); setTimeout(more, 250); }, { once: true }); };
+    const more = () => { if (queued >= N) return; const k = queued++; load(k); vids[k].addEventListener('loadeddata', () => { idle(() => { try { vts[k].needsUpdate = true; r.initTexture(vts[k]); } catch (e) { } }); setTimeout(more, 250); }, { once: true }); };
     if (N) { load(0); vids[0].addEventListener('loadeddata', () => { if (!ready) { ready = true; o.onReady && o.onReady(); } setTimeout(more, 600); }, { once: true }); }
     const show = k => {
       if (k === ch || !N) return;
