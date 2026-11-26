@@ -1543,6 +1543,7 @@ void main(){
     const a = d.createElement('canvas'); a.width = AW; a.height = AH; const x = a.getContext('2d'); x.imageSmoothingQuality = 'high';
     const cw = AW / COLS, ch = AH / ROWS; let blank = 0;
     imgs.forEach((im, i) => { if (blankImg(im)) blank++; x.drawImage(im, (i % COLS) * cw, ((i / COLS) | 0) * ch, cw, ch); });
+    if (!blank) ROLL.atlas = a;
     try { glc.bindTexture(glc.TEXTURE_2D, tex); glc.texImage2D(glc.TEXTURE_2D, 0, glc.RGBA, glc.RGBA, glc.UNSIGNED_BYTE, a); glc.generateMipmap(glc.TEXTURE_2D); glc.texParameteri(glc.TEXTURE_2D, glc.TEXTURE_MIN_FILTER, glc.LINEAR_MIPMAP_LINEAR); aniso(glc); ready = true; if (g) g.dirty = true; } catch (e) { ready = false; }
     if ((blank || !ready) && tries++ < 30) upT = setTimeout(upload, 400);
   };
@@ -1652,7 +1653,7 @@ const CALM = (() => {
   tasks.add(() => { if (S.y !== ly) { ly = S.y; last = performance.now(); } });
   const pump = () => {
     if (!q.length) { busy = false; return; }
-    if (performance.now() - last > 600 && !d.hidden) { const f = q.shift(); try { f(); } catch (e) { } setTimeout(pump, 380); }
+    if (performance.now() - last > 600 && !d.hidden) { const f = q.shift(); try { f(); } catch (e) { } setTimeout(pump, 260); }
     else setTimeout(pump, 220);
   };
   return { add(f, first) { if (first) q.unshift(f); else q.push(f); if (!busy) { busy = true; setTimeout(pump, 220); } } };
@@ -2021,7 +2022,7 @@ const FX3D = (T) => {
     Promise.all((o.tex || []).map(u => loadTex(u, r))).then(a => { a.forEach(t => t && texs.push(t)); if (texs.length) { setT('uA', texs[0]); setT('uB', texs[0]); inA = inB = 0; ready = true; o.onReady && o.onReady(); warmTex(r, texs.slice(1)); } });
     const yaw = sp(0), pit = sp(0), open = sp(0), foc = sp(0); let blurPx = -1;
     const V = {
-      resize: B.resize, dispose: B.dispose, pos(v) { c = v; }, get awake() { return UT.uOn.value > .9; },
+      resize: B.resize, dispose: B.dispose, pos(v) { c = v; }, get awake() { return UT.uOn.value > .35; },
       frame(t, dt, I) {
         /* entra desfocada e ganha foco; depois a tampa abre e a tela acorda */
         const f = spring(foc, I.inn > .25 ? 1 : 0, 2.6, dt), bp = Math.round(Math.max(0, 1 - f) * 16 * 10) / 10;
@@ -2364,8 +2365,8 @@ if (secs.length) {
       s.state = 2;
       /* aquecimento: alguns quadros fora da tela compilam os shaders e sobem as texturas antes de a cena aparecer */
       const warm = () => { if (!s.vis && s.view && s.view.frame) try { s.view.frame(performance.now() / 1000, .016, { x: 0, y: 0, inn: 0, in: false }); } catch (e) { } };
-      [3, 2, 1].forEach(() => CALM.add(warm, true));
-      [1400, 2600].forEach(ms => setTimeout(() => CALM.add(warm), ms));
+      [2, 1].forEach(() => CALM.add(warm, true));
+      setTimeout(() => CALM.add(warm), 1800);
     }).catch(() => { s.state = 3; });
   };
   secs.forEach(s => {
@@ -2452,7 +2453,7 @@ if (secs.length) {
       /* limite de velocidade: mesmo com rolagem rápida, cada case passa como uma troca inteira, nunca num salto */
       if (sc.tw) { const q = clamp((now - sc.tw.t0) / Math.max(.05, sc.tw.d)); sc.cd = lerp(sc.tw.a, sc.tw.b, eio(q)); if (q >= 1) { sc.cd = sc.tw.b; sc.tw = null; } }
       else if (RM || Math.abs(tg - sc.cd) < 1e-4) sc.cd = tg;
-      else { const nd = damp(sc.cd, tg, moving ? 14 : 8, dt), vm = dt / (sc.dur * (moving ? .6 : .45)); sc.cd += clamp(nd - sc.cd, -vm, vm); }
+      else { const nd = damp(sc.cd, tg, moving ? 14 : 8, dt), vm = dt / (moving ? .32 : .4); sc.cd += clamp(nd - sc.cd, -vm, vm); }
       if (s.view && s.view.pos) s.view.pos(sc.cd);
       /* a lista: o case da vez acende; a barra mostra quanto falta para o próximo (rolagem ou relógio) */
       const act = mod(Math.round(sc.cd), sc.n);
@@ -2567,10 +2568,14 @@ if (secs.length) {
       clearTimeout(upT);
       if (!glc || !tex) return;
       if (!imgs.every(i => i.complete && i.naturalWidth)) { upT = setTimeout(upload, 300); return; }
-      const a = d.createElement('canvas'); a.width = AW; a.height = AH; const x = a.getContext('2d'); x.imageSmoothingQuality = 'high';
-      const cw = AW / COLS, ch = AH / ROWS;
-      imgs.forEach((im, i) => x.drawImage(im, (i % COLS) * cw, ((i / COLS) | 0) * ch, cw, ch));
-      try { glc.bindTexture(glc.TEXTURE_2D, tex); glc.texImage2D(glc.TEXTURE_2D, 0, glc.RGBA, glc.RGBA, glc.UNSIGNED_BYTE, a); glc.generateMipmap(glc.TEXTURE_2D); glc.texParameteri(glc.TEXTURE_2D, glc.TEXTURE_MIN_FILTER, glc.LINEAR_MIPMAP_LINEAR); aniso(glc); ready = true; PJ.classList.add('live'); } catch (e) { ready = false; }
+      /* o mesmo atlas da página Projetos, já montado no carregamento: aqui só sobe para a placa */
+      let a = ROLL.atlas;
+      if (!a || a.width !== AW || a.height !== AH) {
+        a = d.createElement('canvas'); a.width = AW; a.height = AH; const x = a.getContext('2d'); x.imageSmoothingQuality = 'high';
+        const cw = AW / COLS, ch = AH / ROWS;
+        imgs.forEach((im, i) => x.drawImage(im, (i % COLS) * cw, ((i / COLS) | 0) * ch, cw, ch));
+      }
+      try { glc.bindTexture(glc.TEXTURE_2D, tex); glc.texImage2D(glc.TEXTURE_2D, 0, glc.RGBA, glc.RGBA, glc.UNSIGNED_BYTE, a); glc.generateMipmap(glc.TEXTURE_2D); glc.texParameteri(glc.TEXTURE_2D, glc.TEXTURE_MIN_FILTER, glc.LINEAR_MIPMAP_LINEAR); aniso(glc); ready = true; ROLL.atlas = null; PJ.classList.add('live'); } catch (e) { ready = false; }
       if (!ready && tries++ < 20) upT = setTimeout(upload, 400);
     };
     /* o contexto WebGL só nasce quando a chamada está chegando */
